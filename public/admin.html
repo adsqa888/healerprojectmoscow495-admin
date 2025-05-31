@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Редактировать артиста</title>
+  <title>HEALER Admin Panel</title>
   <style>
     body {
       font-family: sans-serif;
@@ -49,23 +49,17 @@
     button:hover {
       background-color: #27ae60;
     }
-
-    .logout {
-      text-align: center;
-      margin-top: 30px;
-    }
-
-    .logout a {
-      color: red;
-      text-decoration: none;
-    }
   </style>
 </head>
 <body>
-  <h1>Редактирование страницы артиста</h1>
+  <h1>Редактирование артиста</h1>
+
+  <label for="artistSelect">Выбери артиста:</label>
+  <select id="artistSelect"></select>
+
   <form id="artistForm">
     <label>Имя артиста</label>
-    <input type="text" name="artistName" required />
+    <input type="text" name="artistName" />
 
     <label>Описание (About)</label>
     <textarea name="about" rows="4"></textarea>
@@ -100,37 +94,65 @@
     <label>Шрифт (ttf/otf)</label>
     <input type="file" name="customFont" />
 
-    <input type="hidden" name="artistId" value="healer" />
+    <input type="hidden" name="artistId" />
 
     <button type="submit">💾 Сохранить</button>
   </form>
 
-  <div class="logout">
-    <a href="/logout">Выйти</a>
-  </div>
-
   <script>
+    async function loadArtists() {
+      const res = await fetch('/api/artists');
+      const artists = await res.json();
+      const select = document.getElementById('artistSelect');
+      artists.forEach(artist => {
+        const opt = document.createElement('option');
+        opt.value = artist;
+        opt.textContent = artist;
+        select.appendChild(opt);
+      });
+      if (artists.length > 0) {
+        select.value = artists[0];
+        loadArtistData(artists[0]);
+      }
+    }
+
+    async function loadArtistData(id) {
+      const res = await fetch(`/api/artist-data?id=${id}`);
+      const data = await res.json();
+      const form = document.getElementById('artistForm');
+      form.artistId.value = id;
+      form.artistName.value = data.artistName || "";
+      form.about.value = data.about || "";
+      form.youtube.value = data.youtube || "";
+      form.instagram.value = data.instagram || "";
+      form.vk.value = data.vk || "";
+      form.yandex.value = data.yandex || "";
+      form.telegram.value = data.telegram || "";
+      form.releaseEmbed.value = data.releaseEmbed || "";
+      form.videoEmbed.value = data.videoEmbed || "";
+    }
+
+    document.getElementById('artistSelect').addEventListener('change', e => {
+      loadArtistData(e.target.value);
+    });
+
     document.getElementById("artistForm").addEventListener("submit", async function (e) {
       e.preventDefault();
-
       const form = e.target;
       const formData = new FormData(form);
-
       try {
         const response = await fetch('/api/save-artist', {
           method: 'POST',
           body: formData
         });
-
-        if (response.ok) {
-          alert("✅ Данные сохранены!");
-        } else {
-          alert("❌ Ошибка при сохранении");
-        }
-      } catch (err) {
-        alert("❌ Ошибка сети");
+        if (response.ok) alert("✅ Сохранено!");
+        else alert("❌ Ошибка при сохранении");
+      } catch {
+        alert("❌ Ошибка запроса");
       }
     });
+
+    loadArtists();
   </script>
 </body>
 </html>
