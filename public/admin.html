@@ -1,158 +1,86 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>HEALER Admin Panel</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel — DRIPPIN</title>
   <style>
     body {
-      font-family: sans-serif;
-      max-width: 600px;
-      margin: 40px auto;
-      padding: 20px;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 40px;
+      background-color: #111;
+      color: #fff;
     }
-
     h1 {
       text-align: center;
+      margin-bottom: 30px;
     }
-
     form {
+      max-width: 600px;
+      margin: 0 auto;
       display: flex;
       flex-direction: column;
       gap: 15px;
     }
-
-    label {
-      font-weight: bold;
-    }
-
-    input[type="text"],
-    textarea {
+    input, textarea {
       padding: 10px;
+      border: none;
+      border-radius: 5px;
       font-size: 1em;
     }
-
-    input[type="file"] {
-      padding: 5px;
-    }
-
     button {
       padding: 12px;
-      background-color: #2ecc71;
+      background-color: #ff3366;
       color: white;
       border: none;
+      border-radius: 5px;
       font-size: 1em;
       cursor: pointer;
-      border-radius: 5px;
     }
-
     button:hover {
-      background-color: #27ae60;
+      background-color: #e82c5d;
     }
   </style>
 </head>
 <body>
-  <h1>Редактирование артиста</h1>
-
-  <label for="artistSelect">Выбери артиста:</label>
-  <select id="artistSelect"></select>
-
+  <h1>Создание страницы артиста</h1>
   <form id="artistForm">
-    <label>Имя артиста</label>
-    <input type="text" name="artistName" />
-
-    <label>Описание (About)</label>
-    <textarea name="about" rows="4"></textarea>
-
-    <label>Ссылка на YouTube</label>
-    <input type="text" name="youtube" />
-
-    <label>Ссылка на Instagram</label>
-    <input type="text" name="instagram" />
-
-    <label>Ссылка на VK</label>
-    <input type="text" name="vk" />
-
-    <label>Ссылка на Яндекс.Музыку</label>
-    <input type="text" name="yandex" />
-
-    <label>Ссылка на Telegram</label>
-    <input type="text" name="telegram" />
-
-    <label>Ссылка на последний релиз (Яндекс плеер)</label>
-    <input type="text" name="releaseEmbed" />
-
-    <label>Ссылка на последнее видео (YouTube embed)</label>
-    <input type="text" name="videoEmbed" />
-
-    <label>Фото артиста (jpg/png)</label>
-    <input type="file" name="artistPhoto" />
-
-    <label>Фон (jpg/png)</label>
-    <input type="file" name="background" />
-
-    <label>Шрифт (ttf/otf)</label>
-    <input type="file" name="customFont" />
-
-    <input type="hidden" name="artistId" />
-
-    <button type="submit">💾 Сохранить</button>
+    <input type="text" name="id" placeholder="URL страницы (artistId)" required />
+    <input type="text" name="artistName" placeholder="Имя артиста" required />
+    <textarea name="about" placeholder="Описание / About" rows="3"></textarea>
+    <input type="text" name="photo" placeholder="Ссылка на фото артиста" />
+    <input type="text" name="youtube" placeholder="Ссылка на YouTube" />
+    <input type="text" name="instagram" placeholder="Ссылка на Instagram" />
+    <input type="text" name="vk" placeholder="Ссылка на VK" />
+    <input type="text" name="telegram" placeholder="Ссылка на Telegram" />
+    <input type="text" name="yandex" placeholder="Ссылка на Yandex Music" />
+    <input type="text" name="releaseEmbed" placeholder="Embed код плеера Яндекс Музыки" />
+    <input type="text" name="videoEmbed" placeholder="Embed код видео YouTube" />
+    <input type="text" name="background" placeholder="Ссылка на фон (jpg/png)" />
+    <input type="text" name="customFont" placeholder="Ссылка на кастомный шрифт (woff2)" />
+    <button type="submit">Создать страницу</button>
   </form>
 
   <script>
-    async function loadArtists() {
-      const res = await fetch('/api/artists');
-      const artists = await res.json();
-      const select = document.getElementById('artistSelect');
-      artists.forEach(artist => {
-        const opt = document.createElement('option');
-        opt.value = artist;
-        opt.textContent = artist;
-        select.appendChild(opt);
-      });
-      if (artists.length > 0) {
-        select.value = artists[0];
-        loadArtistData(artists[0]);
-      }
-    }
-
-    async function loadArtistData(id) {
-      const res = await fetch(`/api/artist-data?id=${id}`);
-      const data = await res.json();
-      const form = document.getElementById('artistForm');
-      form.artistId.value = id;
-      form.artistName.value = data.artistName || "";
-      form.about.value = data.about || "";
-      form.youtube.value = data.youtube || "";
-      form.instagram.value = data.instagram || "";
-      form.vk.value = data.vk || "";
-      form.yandex.value = data.yandex || "";
-      form.telegram.value = data.telegram || "";
-      form.releaseEmbed.value = data.releaseEmbed || "";
-      form.videoEmbed.value = data.videoEmbed || "";
-    }
-
-    document.getElementById('artistSelect').addEventListener('change', e => {
-      loadArtistData(e.target.value);
-    });
-
-    document.getElementById("artistForm").addEventListener("submit", async function (e) {
+    document.getElementById('artistForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const form = e.target;
-      const formData = new FormData(form);
-      try {
-        const response = await fetch('/api/save-artist', {
-          method: 'POST',
-          body: formData
-        });
-        if (response.ok) alert("✅ Сохранено!");
-        else alert("❌ Ошибка при сохранении");
-      } catch {
-        alert("❌ Ошибка запроса");
+      const formData = new FormData(e.target);
+      const data = Object.fromEntries(formData.entries());
+
+      const res = await fetch('/api/create-artist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+
+      const json = await res.json();
+      if (json.success) {
+        alert('✅ Артист создан! Папка и страница автоматически размещены.');
+      } else {
+        alert('❌ Ошибка: ' + (json.error || json.message));
       }
     });
-
-    loadArtists();
   </script>
 </body>
 </html>
