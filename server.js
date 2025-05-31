@@ -6,77 +6,103 @@ const path = require('path');
 const cookieParser = require('cookie-parser');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-
+const upload = multer({ dest: 'uploads/' });
 app.use(cors());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
 app.use(cookieParser());
-app.use('/public', express.static('public'));
+app.use(express.static('public'));
 app.use('/uploads', express.static('uploads'));
 
-// Multer для загрузки файлов
-const upload = multer({ dest: 'uploads/' });
+const PORT = process.env.PORT || 10000;
 
-// Загрузка базы пользователей
-const users = JSON.parse(fs.readFileSync('./users.json', 'utf-8'));
+// 🔐 Простейшая авторизация по cookie (упрощённо)
+const users = {
+  alexey: { password: 'drippin', role: 'admin' },
+  healer: { password: 'healerpass', role: 'artist' }
+};
 
-// Middleware авторизации
-function authMiddleware(req, res, next) {
-  const username = req.cookies.username;
-  if (!username || !users[username]) {
-    return res.redirect('/public/login.html');
-  }
-  req.user = users[username];
-  next();
-}
-
-// Страница входа
-app.post('/login', (req, res) => {
+// ⬇️ Авторизация
+app.post('/login', express.urlencoded({ extended: true }), (req, res) => {
   const { username, password } = req.body;
   const user = users[username];
-
-  if (!user || user.password !== password) {
-    return res.status(401).send('❌ Неверный логин или пароль');
+  if (user && user.password === password) {
+    res.cookie('user', username, { httpOnly: true });
+    res.redirect('/public/admin.html');
+  } else {
+    res.send('Неверный логин или пароль');
   }
-
-  res.cookie('username', username, { httpOnly: true });
-  res.redirect('/public/admin.html');
 });
 
-// Выход
-app.get('/logout', (_, res) => {
-  res.clearCookie('username');
-  res.redirect('/public/login.html');
+// 📄 Получить список артистов
+app.get('/api/artists', (req, res) => {
+  const artists = Object.keys(users).filter(u => users[u].role === 'artist');
+  res.json(artists);
 });
 
-// Проверка прав доступа к API
-app.post('/api/save-artist', authMiddleware, upload.fields([
-  { name: 'artistPhoto' },
+// 📄 Получить данные артиста
+app.get('/api/artist-data', (req, res) => {
+  const artistId = req.query.id;
+  const filePath = path.join(__dirname, 'uploads', artistId, 'data.json');
+  if (fs.existsSync(filePath)) {
+    const data = fs.readFileSync(filePath);
+    res.json(JSON.parse(data));
+  } else {
+    res.json({});
+  }
+});
+
+// 💾 Сохранить данные артиста
+app.post('/api/save-artist', upload.fields([
+  { name: 'artistPhoto' }, 
   { name: 'background' },
   { name: 'customFont' }
 ]), (req, res) => {
-  const data = req.body;
-  const files = req.files;
+  const artistId = req.body.artistId;
+  const artistDir = path.join(__dirname, 'uploads', artistId);
+  if (!fs.existsSync(artistDir)) fs.mkdirSync(artistDir, { recursive: true });
 
-  const artistId = req.user.role === 'admin' ? data.artistId : req.user.artistId;
-  const savePath = `./uploads/${artistId}`;
-  if (!fs.existsSync(savePath)) fs.mkdirSync(savePath, { recursive: true });
-
-  // Сохраняем текстовые данные
-  fs.writeFileSync(`${savePath}/data.json`, JSON.stringify(data, null, 2));
-
-  // Сохраняем файлы
-  for (const field in files) {
-    const file = files[field][0];
-    const ext = path.extname(file.originalname);
-    fs.renameSync(file.path, `${savePath}/${field}${ext}`);
+  const dataPath = path.join(artistDir, 'data.json');
+  let currentData = {};
+  if (fs.existsSync(dataPath)) {
+    currentData = JSON.parse(fs.readFileSync(dataPath));
   }
 
-  res.send('✅ Данные сохранены');
+  // Обновляем поля только если они пришли
+  const fieldsToUpdate = [
+    'artistName', 'about', 'youtube', 'instagram',
+    'vk', 'yandex', 'telegram', 'releaseEmbed', 'videoEmbed'
+  ];
+  fieldsToUpdate.forEach(field => {
+    if (req.body[field]) currentData[field] = req.body[field];
+  });
+
+  // Файлы
+  const fileMap = {
+    artistPhoto: 'photo',
+    background: 'background',
+    customFont: 'font'
+  };
+
+  for (const field in fileMap) {
+    if (req.files[field]) {
+      const file = req.files[field][0];
+      const ext = path.extname(file.originalname);
+      const target = path.join(artistDir, `${fileMap[field]}${ext}`);
+      fs.renameSync(file.path, target);
+      currentData[field] = `/uploads/${artistId}/${fileMap[field]}${ext}`;
+    }
+  }
+
+  fs.writeFileSync(dataPath, JSON.stringify(currentData, null, 2));
+  res.send('ok');
 });
 
+// 🧼 Выйти
+app.get('/logout', (req, res) => {
+  res.clearCookie('user');
+  res.redirect('/public/login.html');
+});
+
+// ▶️ Запуск сервера
 app.listen(PORT, () => {
   console.log(`🔐 Сервер запущен на http://localhost:${PORT}`);
 });
-
