@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Artist</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #000;
+      color: #fff;
+      font-family: sans-serif;
+      text-align: center;
+    }
+    h1 {
+      font-size: 3em;
+      margin-top: 40px;
+    }
+    .photo {
+      width: 200px;
+      height: 200px;
+      object-fit: cover;
+      border-radius: 100px;
+      margin: 20px auto;
+    }
+    .about {
+      margin: 20px auto;
+      width: 90%;
+      max-width: 600px;
+      font-size: 1.1em;
+      line-height: 1.5em;
+    }
+    .socials {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin: 30px 0;
+    }
+    .socials img {
+      width: 40px;
+      height: 40px;
+    }
+    .release, .video {
+      margin-top: 40px;
+    }
+    iframe {
+      width: 90%;
+      max-width: 400px;
+      height: 200px;
+      border-radius: 12px;
+      margin-top: 10px;
+    }
+    .copyright {
+      margin-top: 50px;
+      font-size: 0.9em;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+  <h1 id="artist-name">Artist</h1>
+  <img id="artist-photo" class="photo" src="" alt="Artist photo" />
+  <div class="about" id="about"></div>
+
+  <div class="socials" id="socials"></div>
+
+  <div class="release">
+    <h2>Latest Release</h2>
+    <div id="release"></div>
+  </div>
+
+  <div class="video">
+    <h2>Latest Video</h2>
+    <div id="video"></div>
+  </div>
+
+  <div class="copyright">© DRIPPIN</div>
+
+  <script>
+    const path = window.location.pathname.split("/").filter(Boolean);
+    const artistId = path[path.length - 1] || path[path.length - 2];
+
+    fetch(`https://healerprojectmoscow495-admin.onrender.com/api/artist-data?id=${artistId}`)
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("artist-name").textContent = data.artistName || artistId;
+        if (data.about) document.getElementById("about").textContent = data.about;
+        if (data.photo) document.getElementById("artist-photo").src = data.photo;
+
+        const socials = document.getElementById("socials");
+        const links = [
+          ["youtube", "YouTube"],
+          ["instagram", "Instagram"],
+          ["vk", "VK"],
+          ["yandex", "Yandex"],
+          ["telegram", "Telegram"]
+        ];
+
+        links.forEach(([key, alt]) => {
+          if (data[key]) {
+            const a = document.createElement("a");
+            a.href = data[key];
+            a.target = "_blank";
+            const img = document.createElement("img");
+            img.src = `/icons/${key}.png`;
+            img.alt = alt;
+            a.appendChild(img);
+            socials.appendChild(a);
+          }
+        });
+
+        if (data.releaseEmbed) {
+          document.getElementById("release").innerHTML = data.releaseEmbed;
+        }
+
+        if (data.videoEmbed) {
+          document.getElementById("video").innerHTML = data.videoEmbed;
+        }
+
+        if (data.background) {
+          document.body.style.backgroundImage = `url(${data.background})`;
+          document.body.style.backgroundSize = 'cover';
+          document.body.style.backgroundPosition = 'center';
+        }
+
+        if (data.customFont) {
+          const link = document.createElement("link");
+          link.rel = "stylesheet";
+          link.href = data.customFont;
+          document.head.appendChild(link);
+          document.body.style.fontFamily = 'CustomFont';
+        }
+      });
+  </script>
+</body>
+</html>
