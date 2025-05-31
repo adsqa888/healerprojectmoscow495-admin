@@ -1,0 +1,11 @@
+{
+  "alexey": {
+    "password": "drippin",
+    "role": "admin"
+  },
+  "healer": {
+    "password": "healer123",
+    "role": "artist",
+    "artistId": "healer"
+  }
+}
